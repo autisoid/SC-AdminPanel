@@ -17,10 +17,15 @@ Note that minimal version isn't really supported by me! I don't give any guarant
 - Finish second page of Player management menu
 
 # Installing
-- Clone the repo (git clone https://github.com/autisoid/SC-AdminPanel)
+- Clone the repo (git clone `https://github.com/autisoid/SC-AdminPanel`)
 - Choose which version you want to use (metamod one or metamod-less a.k.a. minimal one)
 - Rename `CCustomTextMenu_meta.as` to `CCustomTextMenu.as` if you are using metamod version, same goes for `CCustomTextMenu_minimal.as` respectively.
-- In case you are going to use metamod version, you have to compile ASExtHook (modified version) on your own. (External/ASExtHook)
+- In case you are going to use metamod version, you have to compile ASExtHook (modified version) on your own. (src directory)
+- You're beautiful!
+
+# Compiling asexthook
+- Follow build instructions from this repo: `https://github.com/drabcofficial/asexthook`
+- Replace "src" folder with the one from this repository
 - You're beautiful!
 
 Feel free to report any bugs, don't forget to describe "how to reproduce"!
