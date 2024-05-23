@@ -8,10 +8,19 @@ Add yourself to `g_a_lpszAllowedSteamIDs` in `PluginInit` (a comment block is le
 Set `g_lpszTheOwner` to your (the owner :D) SteamID.
 The admin panel source file may contain some trash/unused code, don't mind that. I was writing the whole admin panel for more than four months and I might have already forgotten about some unused code.
 
+Note that minimal version isn't really supported by me! I don't give any guarantees that I will update it.
+
 # TODO list
 - Add commands (.sethealth TheKirkaYT 12412412)
 - Rewrite logging logic
 - Make a real "minimal" version (no metamod)
 - Finish second page of Player management menu
+
+# Installing
+- Clone the repo (git clone https://github.com/autisoid/SC-AdminPanel)
+- Choose which version you want to use (metamod one or metamod-less a.k.a. minimal one)
+- Rename `CCustomTextMenu_meta.as` to `CCustomTextMenu.as` if you are using metamod version, same goes for `CCustomTextMenu_minimal.as` respectively.
+- In case you are going to use metamod version, you have to compile ASExtHook (modified version) on your own. (External/ASExtHook)
+- You're beautiful!
 
 Feel free to report any bugs, don't forget to describe "how to reproduce"!
