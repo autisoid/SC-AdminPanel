@@ -1573,13 +1573,6 @@ void MapInit() {
     g_Game.PrecacheOther("point_checkpoint");
     g_Game.PrecacheModel("models/common/lambda.mdl");
     g_Game.PrecacheGeneric("models/common/lambda.mdl");
-    g_Game.PrecacheGeneric("sprites/classic_hldm/weapon_gauss.txt");
-    g_Game.PrecacheModel("models/player/recruit_wt/recruit_wt.mdl");
-    g_Game.PrecacheGeneric("models/player/recruit_wt/recruit_wt.mdl");
-    
-    g_SoundSystem.PrecacheSound("vox/area.wav");
-    g_SoundSystem.PrecacheSound("vox/is.wav");
-    g_SoundSystem.PrecacheSound("vox/clear.wav");
     
     g_Game.PrecacheModel("models/zode/v_entmover.mdl");
     g_Game.PrecacheModel("models/zode/p_entmover.mdl");
