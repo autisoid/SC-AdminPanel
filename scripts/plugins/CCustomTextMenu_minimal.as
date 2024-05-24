@@ -14,6 +14,52 @@ funcdef void g_tCustomTextMenuCB(CCustomTextMenu@ _Menu, CBasePlayer@ _Player, i
 
 const int MAX_ITEMS_PER_PAGE = 7;
 
+string CustomMenus_UTIL_DecolorizeItem(const string& in _RawText) {
+    if (_RawText[0] == '\\' and _RawText[1] == 'w' and ((_RawText[_RawText.Length() - 1] == 'r' or _RawText[_RawText.Length() - 1] == 'y') and _RawText[_RawText.Length() - 2] == '\\')) {
+        string copy = "";
+        
+        for (uint idx = 0; idx < _RawText.Length(); idx++) {
+            if (_RawText[idx] == '\n') continue;
+            
+            copy += _RawText[idx];
+        }
+        
+        return copy.SubString(2, copy.Length() - 4);
+    } else if (_RawText[0] == '\\' and _RawText[1] == 'w') {
+        string copy = "";
+        
+        for (uint idx = 0; idx < _RawText.Length(); idx++) {
+            if (_RawText[idx] == '\n') continue;
+            
+            copy += _RawText[idx];
+        }
+        
+        return copy.SubString(2, copy.Length());
+    } else if (_RawText[0] == '\\' and _RawText[1] == 'y') {
+        string copy = "";
+        
+        for (uint idx = 0; idx < _RawText.Length(); idx++) {
+            if (_RawText[idx] == '\n') continue;
+            
+            copy += _RawText[idx];
+        }
+        
+        return copy.SubString(2, copy.Length());
+    } else if (_RawText[0] == '\\' and _RawText[1] == 'r') {
+        string copy = "";
+        
+        for (uint idx = 0; idx < _RawText.Length(); idx++) {
+            if (_RawText[idx] == '\n') continue;
+            
+            copy += _RawText[idx];
+        }
+        
+        return copy.SubString(2, copy.Length());
+    }
+    
+    return _RawText;
+}
+
 CCustomTextMenuListener@ CustomMenus_UTIL_GetListenerBySteamID(const string& in _SteamID) {
     if (g_alpListeners.length() == 0) return null; //save some computing powerz
     
@@ -59,7 +105,7 @@ class CCustomTextMenuItem {
     }
     
     CCustomTextMenuItem(const CTextMenuItem@ _Wrappee) {
-        m_lpszText = _Wrappee.m_szName;
+        m_lpszText = CustomMenus_UTIL_DecolorizeItem(_Wrappee.m_szName);
         @m_pUserData = _Wrappee.m_pUserData;
     }
 }
@@ -69,12 +115,14 @@ class CCustomTextMenu {
 	g_tCustomTextMenuCB@ m_lpfnCallback;
     array<CCustomTextMenuItem@> m_alpItems;
     array<CCustomTextMenuListener@> m_alpListeners;
+    bool m_bHasRegisteredMenu;
     
     CTextMenu@ m_lpWrappee;
 	
 	CCustomTextMenu(g_tCustomTextMenuCB@ _Callback, bool _bExtraSpaceAfterTitle = true) {
         @m_lpfnCallback = _Callback;
         @m_lpWrappee = CTextMenu(TextMenuPlayerSlotCallback(this.WrapperCB));
+        m_bHasRegisteredMenu = false;
     }
     
     void Register() {
@@ -93,7 +141,20 @@ class CCustomTextMenu {
     
     void SetTitle(const string& in _Title) {
         m_lpszTitle = _Title;
-        m_lpWrappee.SetTitle(_Title);
+        string szTitle = "\\y" + _Title;
+        uint totalPages = (m_alpItems.length() + 6) / MAX_ITEMS_PER_PAGE;
+        if (m_alpItems.length() > 9) {
+            szTitle += "\n~ Page \\r";
+        } else {
+            szTitle += "\\r";
+        }
+        //szTitle += "\\w\n";
+        //if (m_bExtraSpaceAfterTitle) {
+        //    szTitle += "\n";
+        //}
+        
+        m_lpWrappee.SetTitle(szTitle);
+        
     }
     
     string GetTitle() {
@@ -102,14 +163,12 @@ class CCustomTextMenu {
     
     void AddItem(const string& in _DisplayText) {
         m_alpItems.insertLast(CCustomTextMenuItem(_DisplayText));
-        m_lpWrappee.AddItem(_DisplayText);
     }
     
     void AddItem(const string& in _DisplayText, any@ _UserData) {
         CCustomTextMenuItem@ item = CCustomTextMenuItem(_DisplayText);
         item.SetUserData(@_UserData);
         m_alpItems.insertLast(item);
-        m_lpWrappee.AddItem(_DisplayText, @_UserData);
     }
     
     uint GetPageCount() {
@@ -132,8 +191,29 @@ class CCustomTextMenu {
     }
     
     void Open(int _DisplayTime, uint _Page, CBasePlayer@ _Player) {
-        m_lpWrappee.Unregister();
-        m_lpWrappee.Register();
+        if (!m_bHasRegisteredMenu) {
+            m_lpWrappee.Unregister();
+            int iMaxEntriesPerPage = m_alpItems.length() <= 9 ? 9 : 7;
+            int iCount = 1;
+            
+            for (uint idx = 0; idx < m_alpItems.length(); idx++) {
+                CCustomTextMenuItem@ pItem = @m_alpItems[idx];
+                if (iCount < iMaxEntriesPerPage) {
+                    if (idx != m_alpItems.length() - 1) {
+                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\r", @pItem.m_pUserData);
+                    } else {
+                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", @pItem.m_pUserData);
+                    }
+                    iCount++;
+                } else {
+                    m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", @pItem.m_pUserData);
+                    iCount = 1;
+                }
+            }
+            
+            m_lpWrappee.Register();
+            m_bHasRegisteredMenu = true;
+        }
         m_lpWrappee.Open(_DisplayTime, _Page, _Player);
         
         string szSteamID = g_EngineFuncs.GetPlayerAuthId(_Player.edict());
