@@ -11,7 +11,6 @@ The admin panel source file may contain some trash/unused code, don't mind that.
 # TODO list
 - Add commands (.sethealth TheKirkaYT 12412412)
 - Rewrite logging logic
-- Make a real "minimal" version (no metamod)
 - Finish second page of Player management menu
 
 # Installing
