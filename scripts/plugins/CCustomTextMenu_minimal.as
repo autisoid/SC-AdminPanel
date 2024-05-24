@@ -104,9 +104,23 @@ class CCustomTextMenuItem {
         m_lpszText = _DisplayText;
     }
     
-    CCustomTextMenuItem(const CTextMenuItem@ _Wrappee) {
+    CCustomTextMenuItem(const CTextMenuItem@ _Wrappee, CCustomTextMenuListener@ _Listener) {
         m_lpszText = CustomMenus_UTIL_DecolorizeItem(_Wrappee.m_szName);
-        @m_pUserData = _Wrappee.m_pUserData;
+        CCustomTextMenuItemUserDataWrapper@ pWrapper;
+        _Wrappee.m_pUserData.retrieve(@pWrapper);
+        if (pWrapper is null) return;
+        @m_pUserData = pWrapper.m_pUserData;
+        _Listener.m_iCurrentPage = pWrapper.m_iPage;
+    }
+}
+
+class CCustomTextMenuItemUserDataWrapper {
+    any@ m_pUserData;
+    int m_iPage;
+    
+    CCustomTextMenuItemUserDataWrapper(any@ _UserData, int _Page) {
+        @m_pUserData = _UserData;
+        m_iPage = _Page;
     }
 }
 
@@ -186,7 +200,7 @@ class CCustomTextMenu {
             }
             
             CCustomTextMenuListener@ pListener = CustomMenus_UTIL_GetListenerBySteamID(szSteamID);
-            m_lpfnCallback(@this, _Player, _Slot, CCustomTextMenuItem(_Item), pListener);
+            m_lpfnCallback(@this, _Player, _Slot, CCustomTextMenuItem(_Item, pListener), pListener);
         }
     }
     
@@ -194,20 +208,22 @@ class CCustomTextMenu {
         if (!m_bHasRegisteredMenu) {
             m_lpWrappee.Unregister();
             int iMaxEntriesPerPage = m_alpItems.length() <= 9 ? 9 : 7;
-            int iCount = 1;
+            int iCount = 1, nPage = 0;
             
             for (uint idx = 0; idx < m_alpItems.length(); idx++) {
                 CCustomTextMenuItem@ pItem = @m_alpItems[idx];
+                CCustomTextMenuItemUserDataWrapper@ pWrapper = CCustomTextMenuItemUserDataWrapper(@pItem.m_pUserData, nPage);
                 if (iCount < iMaxEntriesPerPage) {
                     if (idx != m_alpItems.length() - 1) {
-                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\r", @pItem.m_pUserData);
+                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\r", any(@pWrapper));
                     } else {
-                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", @pItem.m_pUserData);
+                        m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", any(@pWrapper));
                     }
                     iCount++;
                 } else {
-                    m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", @pItem.m_pUserData);
+                    m_lpWrappee.AddItem("\\w" + pItem.m_lpszText + "\\y", any(@pWrapper));
                     iCount = 1;
+                    nPage++;
                 }
             }
             
