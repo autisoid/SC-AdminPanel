@@ -41,7 +41,8 @@ string g_lpszMainMenu_Title = "Constantium's Admin Menu\n";
 array<string> g_a_lpszMainMenuTaglines = { "Such tasty.", "Feeling horrible.", "Despair.", "Big boi.", "I do as I please.", 
     "Commit (suicide?)", ":D", "It's here!", "Kewl message OwO", "Get fascinated!", 
     "Huh, didn't guess anything clever here.", "Isn't this a dream, is it?", "That feeling of anarchy... Nah, it doesn't exist.", 
-    "Hannahmontana.", "Fuck feds!", "shaza lala", "Poke.", "Let's do that quickly..." };
+    "Hannahmontana.", "Fuck feds!", "shaza lala", "Poke.", "Let's do that quickly...", "She's walking away, bitch, blew my cover!", "Huh, pussies.",
+    "Female impresser.", "Genetic freak.", "She won't let me hack"};
 CCustomTextMenu@ g_lpMainMenu = null;
 
 string g_lpszBotManagementMenu_Title = "Bot management";
@@ -603,6 +604,49 @@ void AP_SpawnEntities_InitializeList() {
     }
 }
 /* Entity list end */
+
+/* Commands implementation */
+funcdef bool g_tAdminCommandCB(CAdminData@ _Data, CBasePlayer@ _Caller, CCommandArguments@ _Args, CAdminCommandUserDataWrapper@ _UserData);
+
+class CCommandArguments {
+    string m_lpszRawCommand;
+    string m_lpszCutArgs;
+    array<string>@ m_rglpArgs;
+    
+    CCommandArguments(const string& in _RawCommand, const string& in _CutArgs, array<string>@ _Args) {
+        m_lpszRawCommand = _RawCommand;
+        m_lpszCutArgs = _CutArgs;
+        @m_rglpArgs = _Args;
+    }
+}
+
+class CAdminCommandUserDataWrapper {
+    any@ m_lpUserData;
+    
+    CAdminCommandUserDataWrapper(any@ _UserData) {
+        @m_lpUserData = _UserData;
+    }
+}
+
+class CAdminCommand {
+    string m_lpszName;
+    string m_lpszDescription;
+    string m_lpszUsage;
+    g_tAdminCommandCB@ m_lpfnCallback;
+    CAdminCommandUserDataWrapper@ m_lpfnCallbackUserData;
+    bool m_bHasArgs;
+    
+    CAdminCommand(const string& in _Name, const string& in _Description, const string& in _Usage, g_tAdminCommandCB@ _Callback, bool _HasArgs = true, CAdminCommandUserDataWrapper@ _CallbackUserData = null) {
+        m_lpszName = _Name;
+        m_lpszDescription = _Description;
+        m_lpszUsage = _Usage;
+        @m_lpfnCallback = _Callback;
+        @m_lpfnCallbackUserData = _CallbackUserData;
+        m_bHasArgs = _HasArgs;
+    }
+}
+
+array<CAdminCommand@> g_rglpCommands;
 
 CCustomTextMenu@ g_lpEntityManagementMenu = null;
 CCustomTextMenu@ g_lpEntityManagementMenu_SpawnEntites_RelationshipChosenMenu = null;
@@ -1294,6 +1338,14 @@ void PluginInit() {
     AP_SpawnEntities_InitializeList();
     AP_ChangeSkybox_InitialiseSkyboxList();
     
+    g_rglpCommands.insertLast(CAdminCommand("help", "Help message.", "help", AP_Commands_PrintHelp, false));
+    CAdminFakeMsgWrapper@ pFakeMsgTrick1 = CAdminFakeMsgWrapper(".admin");
+    CAdminCommandUserDataWrapper@ pWrapperTrick1 = CAdminCommandUserDataWrapper(any(@pFakeMsgTrick1));
+    g_rglpCommands.insertLast(CAdminCommand("fakeadminmsg", "Sends a fake \".admin\" message into chat.", "fakeadminmsg [custom message]", AP_Commands_FakeMsg, false, @pWrapperTrick1));
+    CAdminFakeMsgWrapper@ pFakeMsgTrick2 = CAdminFakeMsgWrapper("!adminpanel");
+    CAdminCommandUserDataWrapper@ pWrapperTrick2 =  CAdminCommandUserDataWrapper(any(@pFakeMsgTrick2));
+    g_rglpCommands.insertLast(CAdminCommand("fakeapmsg", "Sends a fake \"!adminpanel\" message into chat.", "fakeapmsg [custom message]", AP_Commands_FakeMsg, false, @pWrapperTrick2));
+    
     g_Hooks.RegisterHook(Hooks::Player::ClientConnected, @HOOKED_ClientConnected);
     g_Hooks.RegisterHook(Hooks::Player::ClientDisconnect, @HOOKED_ClientDisconnect);
     g_Hooks.RegisterHook(Hooks::Player::ClientPutInServer, @HOOKED_ClientPutInServer);
@@ -1573,6 +1625,9 @@ void MapInit() {
     g_Game.PrecacheOther("point_checkpoint");
     g_Game.PrecacheModel("models/common/lambda.mdl");
     g_Game.PrecacheGeneric("models/common/lambda.mdl");
+    g_Game.PrecacheGeneric("sprites/classic_hldm/weapon_gauss.txt");
+    g_Game.PrecacheModel("models/player/recruit_wt/recruit_wt.mdl");
+    g_Game.PrecacheGeneric("models/player/recruit_wt/recruit_wt.mdl");
     
     g_Game.PrecacheModel("models/zode/v_entmover.mdl");
     g_Game.PrecacheModel("models/zode/p_entmover.mdl");
@@ -1779,6 +1834,14 @@ void AP_AllyRobo_Detonate(CBaseEntity@ _Entity) {
     }
 }
 
+void Post_HOOKED_PlayerTakeDamage(DamageInfo@ _Info) {
+    CBaseEntity@ victim = @_Info.pVictim;
+    CBasePlayer@ plr = cast<CBasePlayer@>(victim);
+
+    plr.pev.flags &= ~FL_GODMODE;
+    plr.pev.takedamage = DAMAGE_YES;
+}
+
 HookReturnCode HOOKED_PlayerTakeDamage(DamageInfo@ _Info) {
     CBaseEntity@ victim = @_Info.pVictim;
     
@@ -1796,9 +1859,8 @@ HookReturnCode HOOKED_PlayerTakeDamage(DamageInfo@ _Info) {
             _Info.bitsDamageType &= ~DMG_GIB_CORPSE;
             plr.pev.takedamage = DAMAGE_NO;
             plr.pev.flags |= FL_GODMODE;
-            plr.pev.health = plr.pev.health + _Info.flDamage;
-            plr.pev.flags &= ~FL_GODMODE;
-            plr.pev.takedamage = DAMAGE_YES;
+            //plr.pev.health = plr.pev.health + _Info.flDamage;
+            g_Scheduler.SetTimeout("Post_HOOKED_PlayerTakeDamage", 0.0f, _Info);
         }
     }
     
@@ -1844,6 +1906,50 @@ void AP_UTIL_TeleportEntitiesByClassnameIntoPoint(const string& in _Classname, V
             }
         }
     }
+}
+
+bool AP_Commands_PrintHelp(CAdminData@ _Data, CBasePlayer@ _Caller, CCommandArguments@ _Args, CAdminCommandUserDataWrapper@ _UserData) {
+    for (uint idx = 0; idx < g_rglpCommands.length(); idx++) {
+        CAdminCommand@ pCommand = g_rglpCommands[idx];
+        g_PlayerFuncs.ClientPrint(_Caller, HUD_PRINTTALK, "[SM] .admin " + pCommand.m_lpszUsage + " - " + pCommand.m_lpszDescription + "\n");
+    }
+    g_PlayerFuncs.ClientPrint(_Caller, HUD_PRINTTALK, "[SM] <> means required, whlile [] means unnecessary\n");
+    
+    return true;
+}
+
+//Thanks, AngelScript!
+class CAdminFakeMsgWrapper {
+    string m_lpszMode;
+    
+    CAdminFakeMsgWrapper(const string& in _Mode) {
+        m_lpszMode = _Mode;
+    }
+}
+
+bool AP_Commands_FakeMsg(CAdminData@ _Data, CBasePlayer@ _Caller, CCommandArguments@ _Args, CAdminCommandUserDataWrapper@ _UserData) {
+    CAdminFakeMsgWrapper@ pMode = null;
+    _UserData.m_lpUserData.retrieve(@pMode);
+    if (pMode is null) return false;
+    if (pMode.m_lpszMode == ".admin") {
+        if (_Args.m_rglpArgs.length() == 0) {
+            CF_ResendChatMessageWithColorAccordingToTeam(_Caller, ".admin");
+        } else {
+            CF_ResendChatMessageWithColorAccordingToTeam(_Caller, ".admin " + _Args.m_lpszCutArgs);
+        }
+        
+        return true;
+    } else if (pMode.m_lpszMode == "!adminpanel") {
+        if (_Args.m_rglpArgs.length() == 0) {
+            CF_ResendChatMessageWithColorAccordingToTeam(_Caller, "!adminpanel");
+        } else {
+            CF_ResendChatMessageWithColorAccordingToTeam(_Caller, "!adminpanel " + _Args.m_lpszCutArgs);
+        }
+        
+        return true;
+    }
+    
+    return true;
 }
 
 HookReturnCode HOOKED_ClientSay(SayParameters@ _Params) {
@@ -1892,6 +1998,48 @@ HookReturnCode HOOKED_ClientSay(SayParameters@ _Params) {
         if (!AP_IsPlayerAllowedToOpenPanel(g_EngineFuncs.GetPlayerAuthId(player.edict()))) return HOOK_CONTINUE;
         _Params.ShouldHide = true;
         AP_ShowAdminPanel(player);
+        
+        return HOOK_HANDLED;
+    }
+    
+    if (args.ArgC() > 0 && args[0].Find(".admin") == 0) {
+        CBasePlayer@ pPlayer = _Params.GetPlayer();
+        string szSteamID = g_EngineFuncs.GetPlayerAuthId(pPlayer.edict());
+        if (!AP_IsPlayerAllowedToOpenPanel(szSteamID)) return HOOK_CONTINUE;
+        _Params.ShouldHide = true;
+        if (args.ArgC() == 1) {
+            g_PlayerFuncs.ClientPrint(pPlayer, HUD_PRINTTALK, "[SM] Admin commands. Type \".admin help\" for more info.\n");
+            return HOOK_HANDLED;
+        }
+        CAdminData@ lpData = AP_UTIL_GetAdminDataBySteamID(szSteamID);
+        if (lpData is null) {
+            @lpData = CAdminData(szSteamID);
+            g_a_lpAdmins.insertLast(lpData);
+        }
+        CAdminCommand@ lpFound = null;
+        for (uint idx = 0; idx < g_rglpCommands.length(); idx++) {
+            CAdminCommand@ lpCommand = g_rglpCommands[idx];
+            if (lpCommand.m_lpszName == args[1].ToLowercase()) {
+                @lpFound = lpCommand;
+                break;
+            }
+        }
+        if (lpFound !is null) {
+            if (args.ArgC() == 2 && lpFound.m_bHasArgs) {
+                g_PlayerFuncs.ClientPrint(pPlayer, HUD_PRINTTALK, "[SM] Usage: " + lpFound.m_lpszUsage + "\n");
+            } else {
+                array<string> aszArgs;
+                aszArgs.resize(args.ArgC() - 2);
+                for (int j = 2; j < args.ArgC(); j++) {
+                    aszArgs.insertLast(args[j]);
+                }
+                if (!lpFound.m_lpfnCallback(lpData, pPlayer, CCommandArguments(_Params.GetCommand(), _Params.GetCommand().SubString(args[0].Length() + 1 /* space after command */ + args[1].Length() + 1), @aszArgs), @lpFound.m_lpfnCallbackUserData)) {
+                    g_PlayerFuncs.ClientPrint(pPlayer, HUD_PRINTTALK, "[SM] Something went wrong when issuing this command: the callback returned false.\n");
+                }
+            }
+        } else {
+            g_PlayerFuncs.ClientPrint(pPlayer, HUD_PRINTTALK, "[SM] Unknown command. Type \".admin help\" for more info.\n");
+        }
         
         return HOOK_HANDLED;
     }
