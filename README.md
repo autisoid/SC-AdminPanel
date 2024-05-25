@@ -9,9 +9,13 @@ Set `g_lpszTheOwner` to your (the owner :D) SteamID.
 The admin panel source file may contain some trash/unused code, don't mind that. I was writing the whole admin panel for more than four months and I might have already forgotten about some unused code
 
 # TODO list
-- Add commands (.sethealth TheKirkaYT 12412412)
+- Add commands (.sethealth TheKirkaYT 12412412) (partially done, have to implement the commands themselves)
 - Rewrite logging logic
 - Finish second page of Player management menu
+
+# Usage
+After installing, use "!adminpanel" in chat or ".adminpanel" in console to open the menu.
+".admin" in chat for chat commands (have not implemented yet most of the panel functional there, although)
 
 # Installing
 - Clone the repo (git clone `https://github.com/autisoid/SC-AdminPanel`)
