@@ -1860,7 +1860,7 @@ HookReturnCode HOOKED_PlayerTakeDamage(DamageInfo@ _Info) {
             plr.pev.takedamage = DAMAGE_NO;
             plr.pev.flags |= FL_GODMODE;
             //plr.pev.health = plr.pev.health + _Info.flDamage;
-            g_Scheduler.SetTimeout("Post_HOOKED_PlayerTakeDamage", 0.0f, _Info);
+            g_Scheduler.SetTimeout("Post_HOOKED_PlayerTakeDamage", 0.0f, @_Info);
         }
     }
     
